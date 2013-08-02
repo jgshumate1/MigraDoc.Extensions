@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using MigraDoc.DocumentObjectModel.Tables;
 
 namespace MigraDoc.Extensions.Html
 {
@@ -11,7 +12,7 @@ namespace MigraDoc.Extensions.Html
     {
         private IDictionary<string, Func<HtmlNode, DocumentObject, DocumentObject>> nodeHandlers
             = new Dictionary<string, Func<HtmlNode, DocumentObject, DocumentObject>>();
-           
+
         public HtmlConverter()
         {
             AddDefaultNodeHandlers();
@@ -24,7 +25,7 @@ namespace MigraDoc.Extensions.Html
                 return nodeHandlers;
             }
         }
-        
+
         public Action<Section> Convert(string contents)
         {
             return section => ConvertHtml(contents, section);
@@ -56,7 +57,16 @@ namespace MigraDoc.Extensions.Html
                 {
                     // pass the current container or section
                     var result = nodeHandler(node, current ?? section);
-                    
+
+                    //var pageSize = current != null ? current.Section.Document.DefaultPageSetup.PageHeight :
+                    //    section.Document.DefaultPageSetup.PageHeight;
+
+                    //for (int i = 0; i < section.Document.Sections[0].Elements.Count; i++)
+                    //{
+                    //    var element = section.Document.Sections[0].Elements[i].GetType();
+                    //    var x = element.FullName;
+                    //}
+
                     if (node.HasChildNodes)
                     {
                         ConvertHtmlNodes(node.ChildNodes, section, result);
@@ -71,11 +81,13 @@ namespace MigraDoc.Extensions.Html
                 }
             }
         }
-        
+
         private void AddDefaultNodeHandlers()
         {
+            var headerIndex = -1;
+            var cellIndex = -1;
             // Block Elements
-            
+
             // could do with a predicate/regex matcher so we could just use one handler for all headings
             nodeHandlers.Add("h1", AddHeading);
             nodeHandlers.Add("h2", AddHeading);
@@ -100,17 +112,134 @@ namespace MigraDoc.Extensions.Html
                 return GetParagraph(parent).AddHyperlink(node.GetAttributeValue("href", ""), HyperlinkType.Web);
             });
             nodeHandlers.Add("hr", (node, parent) => GetParagraph(parent).SetStyle("HorizontalRule"));
-            nodeHandlers.Add("br", (node, parent) => {
+            nodeHandlers.Add("br", (node, parent) =>
+            {
                 if (parent is FormattedText)
                 {
                     // inline elements can contain line breaks
                     ((FormattedText)parent).AddLineBreak();
                     return parent;
                 }
-                                
+
                 var paragraph = GetParagraph(parent);
                 paragraph.AddLineBreak();
                 return paragraph;
+            });
+
+
+            nodeHandlers.Add("table", (node, parent) =>
+            {
+                Table table = null;
+
+                if (parent is Section)
+                {
+                    var s = (Section)parent;
+                    table = s.AddTable();
+                }
+
+                if (parent is Document)
+                {
+                    var d = (Document)parent;
+                    var s = (Section)d.Sections.LastObject;
+                    table = s.AddTable();
+                }
+
+                table.Borders.Width = Unit.FromCentimeter(0.075);
+
+                return table;
+            });
+
+            nodeHandlers.Add("thead", (node, parent) =>
+            {
+                // we need to create columns before the rows are created
+                // so find out how many columns we have
+                if (node.HasChildNodes)
+                {
+                    foreach (var childNode in node.ChildNodes)
+                    {
+                        if (childNode.Name == "tr")
+                        {
+                            foreach (var theads in childNode.ChildNodes)
+                            {
+                                if (theads.Name == "th")
+                                {
+                                    var t = (Table)parent;
+                                    var column = t.AddColumn(Unit.FromCentimeter(5));
+                                    column.Format.Alignment = ParagraphAlignment.Center;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return parent;
+            });
+
+            nodeHandlers.Add("tr", (node, parent) =>
+            {
+                if (parent is Table)
+                {
+                    // have to add columns before rows are added
+                    if (node.ParentNode.Name == "thead")
+                    {
+                        return parent;
+                    }
+
+                    var t = (Table)parent;
+                    Row row = t.AddRow();
+                    cellIndex = -1;
+                    return row;
+                }
+
+                return parent;
+            });
+
+            nodeHandlers.Add("tbody", (node, parent) =>
+            {
+                return parent;
+            });
+
+            nodeHandlers.Add("th", (node, parent) =>
+            {
+                if (parent is Table)
+                {
+                    var t = (Table)parent;
+
+                    if (headerIndex == -1)
+                    {
+                        headerIndex = 0;
+                    }
+                    else
+                    {
+                        headerIndex++;
+                    }
+
+                    var r = (Row)t.Rows.LastObject ?? t.AddRow();
+
+                    var c = r.Cells[headerIndex];
+                    return c;
+                }
+
+                return parent;
+            });
+
+            nodeHandlers.Add("td", (node, parent) =>
+            {
+                if (parent is Row)
+                {
+                    if (cellIndex == -1)
+                    {
+                        cellIndex = 0;
+                    }
+
+                    var tdRow = (Row)parent;
+                    var count = tdRow.Cells.Count;
+                    var c = tdRow.Cells[cellIndex];
+                    cellIndex++;
+                    return c;
+                }
+
+                return parent;
             });
 
             nodeHandlers.Add("li", (node, parent) =>
@@ -121,7 +250,7 @@ namespace MigraDoc.Extensions.Html
 
                 var section = (Section)parent;
                 var isFirst = node.ParentNode.Elements("li").First() == node;
-                var isLast = node.ParentNode.Elements("li").Last() == node; 
+                var isLast = node.ParentNode.Elements("li").Last() == node;
 
                 // if this is the first item add the ListStart paragraph
                 if (isFirst)
@@ -155,7 +284,7 @@ namespace MigraDoc.Extensions.Html
 
                 // decode escaped HTML
                 innerText = WebUtility.HtmlDecode(innerText);
-                
+
                 // text elements must be wrapped in a paragraph but this could also be FormattedText or a Hyperlink!!
                 // this needs some work
                 if (parent is FormattedText)
@@ -165,6 +294,31 @@ namespace MigraDoc.Extensions.Html
                 if (parent is Hyperlink)
                 {
                     return ((Hyperlink)parent).AddText(innerText);
+                }
+                if (parent is Cell)
+                {
+                    return ((Cell)parent).AddParagraph(innerText);
+                }
+                if (parent is Column)
+                {
+                    var c = (Column)parent;
+                    foreach (var column in c.Table.Columns)
+                    {
+                        if (c == column)
+                        {
+                            var t = c.Table;
+                            var r = (Row)t.Rows.LastObject;
+                            var cell = r.Cells[c.Index];
+                            cell.AddParagraph(innerText);
+                        }
+                    }
+
+                    return parent;
+                }
+
+                if (parent is Row)
+                {
+                    return parent;
                 }
 
                 // otherwise a section or paragraph
@@ -194,7 +348,7 @@ namespace MigraDoc.Extensions.Html
             return parent as Paragraph ?? ((Section)parent).AddParagraph();
         }
 
-        private static Paragraph AddParagraphWithStyle(DocumentObject parent, string style) 
+        private static Paragraph AddParagraphWithStyle(DocumentObject parent, string style)
         {
             return ((Section)parent).AddParagraph().SetStyle(style);
         }

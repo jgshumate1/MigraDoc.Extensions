@@ -1,4 +1,6 @@
 ﻿using MigraDoc.DocumentObjectModel;
+using MigraDoc.DocumentObjectModel.Shapes;
+using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Extensions.Markdown;
 using MigraDoc.Rendering;
 using System.Diagnostics;
@@ -21,17 +23,21 @@ namespace MigraDoc.Extensions.Html.Example
             {
                 File.Delete(outputName);
             }
-            
-            
+
             var doc = new Document();
+            doc.DefaultPageSetup.Orientation = Orientation.Portrait;
+            doc.DefaultPageSetup.PageFormat = PageFormat.A4;
+            doc.DefaultPageSetup.LeftMargin = Unit.FromMillimeter(5.0);
+            doc.DefaultPageSetup.RightMargin = Unit.FromMillimeter(5.0);
+            doc.DefaultPageSetup.BottomMargin = Unit.FromMillimeter(5.0);
+            doc.DefaultPageSetup.TopMargin = Unit.FromMillimeter(5.0);
             StyleDoc(doc);
             var section = doc.AddSection();
+            var footer = new TextFrame();
 
+            section.Footers.Primary.Add(footer);
             var html = File.ReadAllText("example.html");
             section.AddHtml(html);
-
-            var markdown = File.ReadAllText("example.md");
-            section.AddMarkdown(markdown);
 
             var renderer = new PdfDocumentRenderer();
             renderer.Document = doc;
@@ -41,6 +47,42 @@ namespace MigraDoc.Extensions.Html.Example
             Process.Start(outputName);
         }
 
+        private void AddTable(Document doc)
+        {
+            doc.LastSection.AddParagraph("Simple Tables", "Heading2");
+
+            Table table = new Table();
+            table.Borders.Width = 0.75;
+
+            Column column = table.AddColumn(Unit.FromCentimeter(2));
+            column.Format.Alignment = ParagraphAlignment.Center;
+
+            table.AddColumn(Unit.FromCentimeter(5));
+
+            Row row = table.AddRow();
+            row.Shading.Color = Colors.PaleGoldenrod;
+            Cell cell = row.Cells[0];
+            cell.AddParagraph("Itemus");
+            cell = row.Cells[1];
+            cell.AddParagraph("Descriptum");
+
+            row = table.AddRow();
+            cell = row.Cells[0];
+            cell.AddParagraph("1");
+            cell = row.Cells[1];
+            cell.AddParagraph("Test");
+
+            row = table.AddRow();
+            cell = row.Cells[0];
+            cell.AddParagraph("2");
+            cell = row.Cells[1];
+            cell.AddParagraph("test2");
+
+            table.SetEdge(0, 0, 2, 3, Edge.Box, BorderStyle.Single, 1.5, Colors.Black);
+
+            doc.LastSection.Add(table);
+        }
+
         private void StyleDoc(Document doc)
         {
             Color green = new Color(108, 179, 63),
@@ -48,16 +90,16 @@ namespace MigraDoc.Extensions.Html.Example
                   lightbrown = new Color(150, 132, 126);
 
             var body = doc.Styles["Normal"];
-            
-            body.Font.Size = Unit.FromPoint(10);
+
+            body.Font.Size = Unit.FromInch(0.14);
             body.Font.Color = new Color(51, 51, 51);
-            
+
             body.ParagraphFormat.LineSpacingRule = LineSpacingRule.Multiple;
             body.ParagraphFormat.LineSpacing = 1.25;
             body.ParagraphFormat.SpaceAfter = 10;
 
             var footer = doc.Styles["Footer"];
-            footer.Font.Size = Unit.FromPoint(9);
+            footer.Font.Size = Unit.FromInch(0.125);
             footer.Font.Color = lightbrown;
 
             var h1 = doc.Styles["Heading1"];

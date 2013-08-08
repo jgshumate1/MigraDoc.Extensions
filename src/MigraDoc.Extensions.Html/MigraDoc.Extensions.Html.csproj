@@ -68,6 +68,7 @@
   <ItemGroup>
     <Compile Include="HtmlConverter.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReportHandler.cs" />
     <Compile Include="SectionExtensions.cs" />
   </ItemGroup>
   <ItemGroup>

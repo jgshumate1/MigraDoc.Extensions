@@ -65,15 +65,6 @@ namespace MigraDoc.Extensions.Html
                     // pass the current container or section
                     var result = nodeHandler(node, current ?? section);
 
-                    //var pageSize = current != null ? current.Section.Document.DefaultPageSetup.PageHeight :
-                    //    section.Document.DefaultPageSetup.PageHeight;
-
-                    //for (int i = 0; i < section.Document.Sections[0].Elements.Count; i++)
-                    //{
-                    //    var element = section.Document.Sections[0].Elements[i].GetType();
-                    //    var x = element.FullName;
-                    //}
-
                     if (node.HasChildNodes)
                     {
                         ConvertHtmlNodes(node.ChildNodes, section, result);
@@ -94,6 +85,12 @@ namespace MigraDoc.Extensions.Html
             var headerIndex = -1;
             var cellIndex = -1;
             // Block Elements
+
+            nodeHandlers.Add("div", (node, parent) =>
+                {
+                    var handler = new ReportHandler();
+                    return handler.NodeHandler(node, parent);
+                });
 
             // could do with a predicate/regex matcher so we could just use one handler for all headings
             nodeHandlers.Add("h1", AddHeading);
@@ -151,13 +148,32 @@ namespace MigraDoc.Extensions.Html
                     table = s.AddTable();
                 }
 
-                table.Borders.Width = Unit.FromCentimeter(0.075);
+                table.Borders.Width = Unit.FromCentimeter(0.05);
+                var margins = node.Attributes["data-padding"];
+                if (margins == null)
+                {
+                    table.TopPadding = Unit.FromCentimeter(0.1);
+                    table.TopPadding = Unit.FromCentimeter(0.1);
+                    table.TopPadding = Unit.FromCentimeter(0.1);
+                    table.TopPadding = Unit.FromCentimeter(0.1);
+                }
+                else
+                {
+                    var marginValues = margins.Value.Split(' ');
+
+                    table.TopPadding = Unit.FromCentimeter(double.Parse(marginValues[0]));
+                    table.RightPadding = Unit.FromCentimeter(double.Parse(marginValues[1]));
+                    table.BottomPadding = Unit.FromCentimeter(double.Parse(marginValues[2]));
+                    table.LeftPadding = Unit.FromCentimeter(double.Parse(marginValues[3]));
+                }
 
                 return table;
             });
 
             nodeHandlers.Add("thead", (node, parent) =>
-            {
+                {
+                    var @class = node.Attributes["class"];
+                    var size = node.Attributes["data-size"];
                 // we need to create columns before the rows are created
                 // so find out how many columns we have
                 if (node.HasChildNodes)
@@ -171,7 +187,15 @@ namespace MigraDoc.Extensions.Html
                                 if (theads.Name == "th")
                                 {
                                     var t = (Table)parent;
-                                    var column = t.AddColumn(Unit.FromCentimeter(5));
+                                    var width = theads.Attributes["data-width"];
+
+                                    var widthUnit = Unit.FromCentimeter(2);
+                                    if (width != null)
+                                    {
+                                        widthUnit = Unit.FromCentimeter(double.Parse(width.Value));
+                                    }
+
+                                    var column = t.AddColumn(widthUnit);
                                     column.Format.Alignment = ParagraphAlignment.Center;
                                 }
                             }

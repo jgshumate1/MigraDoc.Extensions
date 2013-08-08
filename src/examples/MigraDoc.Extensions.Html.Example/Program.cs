@@ -27,10 +27,10 @@ namespace MigraDoc.Extensions.Html.Example
             var doc = new Document();
             doc.DefaultPageSetup.Orientation = Orientation.Portrait;
             doc.DefaultPageSetup.PageFormat = PageFormat.A4;
-            doc.DefaultPageSetup.LeftMargin = Unit.FromMillimeter(5.0);
-            doc.DefaultPageSetup.RightMargin = Unit.FromMillimeter(5.0);
-            doc.DefaultPageSetup.BottomMargin = Unit.FromMillimeter(5.0);
-            doc.DefaultPageSetup.TopMargin = Unit.FromMillimeter(5.0);
+            //doc.DefaultPageSetup.LeftMargin = Unit.FromMillimeter(5.0);
+            //doc.DefaultPageSetup.RightMargin = Unit.FromMillimeter(5.0);
+            //doc.DefaultPageSetup.BottomMargin = Unit.FromMillimeter(5.0);
+            //doc.DefaultPageSetup.TopMargin = Unit.FromMillimeter(5.0);
             StyleDoc(doc);
             var section = doc.AddSection();
             var footer = new TextFrame();
@@ -100,10 +100,10 @@ namespace MigraDoc.Extensions.Html.Example
 
             var footer = doc.Styles["Footer"];
             footer.Font.Size = Unit.FromInch(0.125);
-            footer.Font.Color = lightbrown;
+            footer.Font.Color = green;
 
             var h1 = doc.Styles["Heading1"];
-            h1.Font.Color = brown;
+            h1.Font.Color = green;
             h1.Font.Bold = true;
             h1.Font.Size = Unit.FromPoint(15);
 

@@ -5,7 +5,7 @@ using System;
 
 namespace MigraDoc.Extensions.Markdown
 {
-    public class MarkdownConverter : IConverter
+    public class MarkdownConverter// : IConverter
     {
         private readonly MarkdownOptions options;
 
@@ -33,7 +33,14 @@ namespace MigraDoc.Extensions.Markdown
             var html = converter.Transform(contents);
 
             var htmlConverter = new HtmlConverter();
-            return htmlConverter.Convert(html);
+            var a = new Action<Section>(Target);
+            return a;
+            //return new Action<Section>((section => { new Section(); }));//htmlConverter.Convert(, html);
+        }
+
+        private void Target(Section section)
+        {
+            throw new NotImplementedException();
         }
     }
 }

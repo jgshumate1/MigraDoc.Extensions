@@ -8,7 +8,7 @@ namespace MigraDoc.Extensions.Markdown
     {
         public static Section AddMarkdown(this Section section, string markdown)
         {
-            return section.Add(markdown, new MarkdownConverter());
+            return section; // ection.Add(markdown, new Object());
         }
     }
 }

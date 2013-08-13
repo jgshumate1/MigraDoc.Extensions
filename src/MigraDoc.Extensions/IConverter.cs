@@ -5,6 +5,6 @@ namespace MigraDoc.Extensions
 {
     public interface IConverter
     {
-        Action<Section> Convert(string contents);
+        Action<Section> Convert(ExCSS.Stylesheet sheet, string contents);
     }
 }

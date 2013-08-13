@@ -3,19 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ExCSS.Model;
 using MigraDoc.DocumentObjectModel;
 using HtmlAgilityPack;
+using Unit = MigraDoc.DocumentObjectModel.Unit;
 
 namespace MigraDoc.Extensions.Html
 {
     public interface INodeHandler
     {
-        DocumentObject NodeHandler(HtmlNode node, DocumentObject parent, DocumentObject current = null);
+        DocumentObject NodeHandler(HtmlNode node, ExCSS.Stylesheet sheet, DocumentObject parent, DocumentObject current = null);
     }
 
     public class ReportHandler : INodeHandler
     {
-        public DocumentObject NodeHandler(HtmlNode node, DocumentObject parent, DocumentObject current = null)
+        public DocumentObject NodeHandler(HtmlNode node, ExCSS.Stylesheet sheet, DocumentObject parent, DocumentObject current = null)
         {
             var @class = node.Attributes["class"];
 
@@ -25,6 +27,23 @@ namespace MigraDoc.Extensions.Html
             }
 
             var sec = (Section)parent;
+
+            if (@class != null)
+            {
+                var rule = sheet.RuleSets
+                    .Select(r => r.Declarations)
+                    .Where(d => d..Name)
+                    .Where()
+                //.SelectMany(d => d.Expression.Terms)
+                //.Where(d => d.Value == @class.Name)
+                //.ToList();
+
+                //var u = rule.Unit;
+            }
+            else
+            {
+
+            }
 
             if (@class != null && @class.Value == "report")
             {

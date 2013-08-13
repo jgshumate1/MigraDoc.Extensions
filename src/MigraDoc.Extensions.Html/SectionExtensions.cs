@@ -6,9 +6,9 @@ namespace MigraDoc.Extensions.Html
 {
     public static class SectionExtensions
     {
-        public static Section AddHtml(this Section section, string html)
+        public static Section AddHtml(this Section section, ExCSS.Stylesheet sheet, string html)
         {
-            return section.Add(html, new HtmlConverter());
+            return section.Add(sheet, html, new HtmlConverter());
         }
     }
 }

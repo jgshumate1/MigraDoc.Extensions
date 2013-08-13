@@ -1,9 +1,12 @@
-﻿using MigraDoc.DocumentObjectModel;
+﻿using System.Linq;
+using ExCSS.Model;
+using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
 using MigraDoc.DocumentObjectModel.Tables;
 using MigraDoc.Rendering;
 using System.Diagnostics;
 using System.IO;
+using Unit = MigraDoc.DocumentObjectModel.Unit;
 
 namespace MigraDoc.Extensions.Html.Example
 {
@@ -23,20 +26,26 @@ namespace MigraDoc.Extensions.Html.Example
                 File.Delete(outputName);
             }
 
+            var parser = new ExCSS.StylesheetParser();
+            var css = File.ReadAllText("Site.css");
+            var sheet = parser.Parse(css);
+
+            var t2 = sheet.RuleSets
+            .SelectMany(r => r.Declarations)
+            .SelectMany(d => d.Expression.Terms)
+            .Where(t => t.Type == TermType.Url)
+            .First(); // Finds the '/images/logo.png' image
+
             var doc = new Document();
             doc.DefaultPageSetup.Orientation = Orientation.Portrait;
             doc.DefaultPageSetup.PageFormat = PageFormat.A4;
-            doc.DefaultPageSetup.LeftMargin = Unit.FromCentimeter(1);
-            doc.DefaultPageSetup.RightMargin = Unit.FromCentimeter(1);
-            doc.DefaultPageSetup.BottomMargin = Unit.FromCentimeter(1);
-            doc.DefaultPageSetup.TopMargin = Unit.FromCentimeter(1);
             StyleDoc(doc);
             var section = doc.AddSection();
             var footer = new TextFrame();
 
             section.Footers.Primary.Add(footer);
             var html = File.ReadAllText("example.html");
-            section.AddHtml(html);
+            section.AddHtml(sheet, html);
 
             var renderer = new PdfDocumentRenderer();
             renderer.Document = doc;

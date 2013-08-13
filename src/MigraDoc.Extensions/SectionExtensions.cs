@@ -5,7 +5,7 @@ namespace MigraDoc.Extensions
 {
     public static class SectionExtensions
     {
-        public static Section Add(this Section section, string contents, IConverter converter)
+        public static Section Add(this Section section, ExCSS.Stylesheet sheet, string contents, IConverter converter)
         {
             if (string.IsNullOrEmpty(contents))
             {
@@ -16,7 +16,7 @@ namespace MigraDoc.Extensions
                 throw new ArgumentNullException("converter");
             }
 
-            var addAction = converter.Convert(contents);
+            var addAction = converter.Convert(sheet, contents);
             addAction(section);
             return section;
         }

@@ -10,15 +10,17 @@ namespace MigraDoc.Extensions.Html
 {
     public class HtmlConverter : IConverter
     {
-        private IDictionary<string, Func<HtmlNode, DocumentObject, DocumentObject>> nodeHandlers
-            = new Dictionary<string, Func<HtmlNode, DocumentObject, DocumentObject>>();
+        private IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> nodeHandlers
+            = new Dictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>>();
+
+        private ExCSS.Stylesheet _sheet;
 
         public HtmlConverter()
         {
             AddDefaultNodeHandlers();
         }
 
-        public IDictionary<string, Func<HtmlNode, DocumentObject, DocumentObject>> NodeHandlers
+        public IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> NodeHandlers
         {
             get
             {
@@ -26,13 +28,14 @@ namespace MigraDoc.Extensions.Html
             }
         }
 
-        public Action<Section> Convert(string contents)
+        public Action<Section> Convert(ExCSS.Stylesheet sheet, string contents)
         {
-            return section => ConvertHtml(contents, section);
+            return section => ConvertHtml(sheet, contents, section);
         }
 
-        private void ConvertHtml(string html, Section section)
+        private void ConvertHtml(ExCSS.Stylesheet sheet, string html, Section section)
         {
+            _sheet = sheet;
             if (string.IsNullOrEmpty(html))
             {
                 throw new ArgumentNullException("html");
@@ -46,35 +49,37 @@ namespace MigraDoc.Extensions.Html
             section.PageSetup.HeaderDistance = "0.002cm";
             section.PageSetup.FooterDistance = "0.002cm";
 
-            // Create a paragraph with centered page number. See definition of style "Footer".
+ // Create a paragraph with centered page number. See definition of style "Footer".
             var footer = section.Footers.Primary.AddParagraph();
             footer.Format.Alignment = ParagraphAlignment.Right;
             footer.AddPageField();
+            footer.AddText(" of ");
+            footer.AddNumPagesField();
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
-            ConvertHtmlNodes(doc.DocumentNode.ChildNodes, section);
+            ConvertHtmlNodes(doc.DocumentNode.ChildNodes, sheet, section);
         }
 
-        private void ConvertHtmlNodes(HtmlNodeCollection nodes, DocumentObject section, DocumentObject current = null)
+        private void ConvertHtmlNodes(HtmlNodeCollection nodes, ExCSS.Stylesheet sheet, DocumentObject section, DocumentObject current = null)
         {
             foreach (var node in nodes)
             {
-                Func<HtmlNode, DocumentObject, DocumentObject> nodeHandler;
+                Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject> nodeHandler;
                 if (nodeHandlers.TryGetValue(node.Name, out nodeHandler))
                 {
                     // pass the current container or section
-                    var result = nodeHandler(node, current ?? section);
+                    var result = nodeHandler(node, sheet, current ?? section);
 
                     if (node.HasChildNodes)
                     {
-                        ConvertHtmlNodes(node.ChildNodes, section, result);
+                        ConvertHtmlNodes(node.ChildNodes, sheet, section, result);
                     }
                 }
                 else
                 {
                     if (node.HasChildNodes)
                     {
-                        ConvertHtmlNodes(node.ChildNodes, section, current);
+                        ConvertHtmlNodes(node.ChildNodes, sheet, section, current);
                     }
                 }
             }
@@ -86,11 +91,12 @@ namespace MigraDoc.Extensions.Html
             var cellIndex = -1;
             // Block Elements
 
-            nodeHandlers.Add("div", (node, parent) =>
+            nodeHandlers.Add("div", (node, sheet, parent) =>
                 {
                     var handler = new ReportHandler();
-                    return handler.NodeHandler(node, parent);
+                    return handler.NodeHandler(node, sheet, parent);
                 });
+            var nsheet = _sheet;
 
             // could do with a predicate/regex matcher so we could just use one handler for all headings
             nodeHandlers.Add("h1", AddHeading);
@@ -100,23 +106,23 @@ namespace MigraDoc.Extensions.Html
             nodeHandlers.Add("h5", AddHeading);
             nodeHandlers.Add("h6", AddHeading);
 
-            nodeHandlers.Add("p", (node, parent) =>
+            nodeHandlers.Add("p", (node, sheet, parent) =>
             {
                 return ((Section)parent).AddParagraph();
             });
 
             // Inline Elements
 
-            nodeHandlers.Add("strong", (node, parent) => AddFormattedText(node, parent, TextFormat.Bold));
-            nodeHandlers.Add("i", (node, parent) => AddFormattedText(node, parent, TextFormat.Italic));
-            nodeHandlers.Add("em", (node, parent) => AddFormattedText(node, parent, TextFormat.Italic));
-            nodeHandlers.Add("u", (node, parent) => AddFormattedText(node, parent, TextFormat.Underline));
-            nodeHandlers.Add("a", (node, parent) =>
+            nodeHandlers.Add("strong", (node, sheet, parent) => AddFormattedText(node, sheet, parent, TextFormat.Bold));
+            nodeHandlers.Add("i", (node, sheet, parent) => AddFormattedText(node, sheet, parent, TextFormat.Italic));
+            nodeHandlers.Add("em", (node, sheet, parent) => AddFormattedText(node, sheet, parent, TextFormat.Italic));
+            nodeHandlers.Add("u", (node, sheet, parent) => AddFormattedText(node, sheet, parent, TextFormat.Underline));
+            nodeHandlers.Add("a", (node, sheet, parent) =>
             {
                 return GetParagraph(parent).AddHyperlink(node.GetAttributeValue("href", ""), HyperlinkType.Web);
             });
-            nodeHandlers.Add("hr", (node, parent) => GetParagraph(parent).SetStyle("HorizontalRule"));
-            nodeHandlers.Add("br", (node, parent) =>
+            nodeHandlers.Add("hr", (node, sheet, parent) => GetParagraph(parent).SetStyle("HorizontalRule"));
+            nodeHandlers.Add("br", (node, sheet, parent) =>
             {
                 if (parent is FormattedText)
                 {
@@ -131,7 +137,7 @@ namespace MigraDoc.Extensions.Html
             });
 
 
-            nodeHandlers.Add("table", (node, parent) =>
+            nodeHandlers.Add("table", (node, sheet, parent) =>
             {
                 Table table = null;
 
@@ -170,7 +176,7 @@ namespace MigraDoc.Extensions.Html
                 return table;
             });
 
-            nodeHandlers.Add("thead", (node, parent) =>
+            nodeHandlers.Add("thead", (node, sheet, parent) =>
                 {
                     var @class = node.Attributes["class"];
                     var size = node.Attributes["data-size"];
@@ -206,7 +212,7 @@ namespace MigraDoc.Extensions.Html
                 return parent;
             });
 
-            nodeHandlers.Add("tr", (node, parent) =>
+            nodeHandlers.Add("tr", (node, sheet, parent) =>
             {
                 if (parent is Table)
                 {
@@ -226,12 +232,12 @@ namespace MigraDoc.Extensions.Html
                 return parent;
             });
 
-            nodeHandlers.Add("tbody", (node, parent) =>
+            nodeHandlers.Add("tbody", (node, sheet, parent) =>
             {
                 return parent;
             });
 
-            nodeHandlers.Add("th", (node, parent) =>
+            nodeHandlers.Add("th", (node, sheet, parent) =>
             {
                 if (parent is Table)
                 {
@@ -256,7 +262,7 @@ namespace MigraDoc.Extensions.Html
                 return parent;
             });
 
-            nodeHandlers.Add("td", (node, parent) =>
+            nodeHandlers.Add("td", (node, sheet, parent) =>
             {
                 if (parent is Row)
                 {
@@ -275,7 +281,7 @@ namespace MigraDoc.Extensions.Html
                 return parent;
             });
 
-            nodeHandlers.Add("li", (node, parent) =>
+            nodeHandlers.Add("li", (node, sheet, parent) =>
             {
                 var listStyle = node.ParentNode.Name == "ul"
                     ? "UnorderedList"
@@ -305,7 +311,7 @@ namespace MigraDoc.Extensions.Html
                 return listItem;
             });
 
-            nodeHandlers.Add("#text", (node, parent) =>
+            nodeHandlers.Add("#text", (node, sheet, parent) =>
             {
                 // remove line breaks
                 var innerText = node.InnerText.Replace("\r", "").Replace("\n", "");
@@ -359,7 +365,7 @@ namespace MigraDoc.Extensions.Html
             });
         }
 
-        private static DocumentObject AddFormattedText(HtmlNode node, DocumentObject parent, TextFormat format)
+        private static DocumentObject AddFormattedText(HtmlNode node, ExCSS.Stylesheet sheet, DocumentObject parent, TextFormat format)
         {
             var formattedText = parent as FormattedText;
             if (formattedText != null)
@@ -371,7 +377,7 @@ namespace MigraDoc.Extensions.Html
             return GetParagraph(parent).AddFormattedText(format);
         }
 
-        private static DocumentObject AddHeading(HtmlNode node, DocumentObject parent)
+        private static DocumentObject AddHeading(HtmlNode node, ExCSS.Stylesheet sheet, DocumentObject parent)
         {
             return ((Section)parent).AddParagraph().SetStyle("Heading" + node.Name[1]);
         }

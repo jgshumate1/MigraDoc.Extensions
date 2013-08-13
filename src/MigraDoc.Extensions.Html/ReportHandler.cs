@@ -19,8 +19,6 @@ namespace MigraDoc.Extensions.Html
     {
         public DocumentObject NodeHandler(HtmlNode node, ExCSS.Stylesheet sheet, DocumentObject parent, DocumentObject current = null)
         {
-            var @class = node.Attributes["class"];
-
             if (!(parent is Section))
             {
                 return parent;
@@ -28,17 +26,22 @@ namespace MigraDoc.Extensions.Html
 
             var sec = (Section)parent;
 
+            var @class = node.Attributes["class"];
+
             if (@class != null)
             {
-                var rule = sheet.RuleSets
-                    .Select(r => r.Declarations)
-                    .Where(d => d..Name)
-                    .Where()
-                //.SelectMany(d => d.Expression.Terms)
-                //.Where(d => d.Value == @class.Name)
-                //.ToList();
+                var css = (from t in sheet.RuleSets
+                        where t.Selectors.Any(x => x.SimpleSelectors.Any(z => z.Class == @class.Value))
+                        select t).FirstOrDefault();
 
-                //var u = rule.Unit;
+                if (css != null)
+                {
+                    var topmar = (from top in css.Declarations
+                               where top.Name == "margin-top"
+                               select top).FirstOrDefault();
+
+                    var tm = topmar.Expression.Terms.Select(x => x.Value != String.Empty);
+                }
             }
             else
             {

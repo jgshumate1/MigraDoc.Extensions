@@ -10,6 +10,7 @@ namespace MigraDoc.Extensions.Html
 {
     public class HtmlConverter : IConverter
     {
+        private IDictionary<string, Type> _mapping = new Dictionary<string, Type>();  
         private IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> nodeHandlers
             = new Dictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>>();
 
@@ -18,6 +19,7 @@ namespace MigraDoc.Extensions.Html
         public HtmlConverter()
         {
             AddDefaultNodeHandlers();
+            MapTypes();
         }
 
         public IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> NodeHandlers
@@ -31,6 +33,11 @@ namespace MigraDoc.Extensions.Html
         public Action<Section> Convert(ExCSS.Stylesheet sheet, string contents)
         {
             return section => ConvertHtml(sheet, contents, section);
+        }
+
+        private void MapTypes()
+        {
+            _mapping.Add("div", typeof(ReportHandler));
         }
 
         private void ConvertHtml(ExCSS.Stylesheet sheet, string html, Section section)
@@ -65,21 +72,31 @@ namespace MigraDoc.Extensions.Html
             foreach (var node in nodes)
             {
                 Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject> nodeHandler;
-                if (nodeHandlers.TryGetValue(node.Name, out nodeHandler))
-                {
-                    // pass the current container or section
-                    var result = nodeHandler(node, sheet, current ?? section);
 
-                    if (node.HasChildNodes)
-                    {
-                        ConvertHtmlNodes(node.ChildNodes, sheet, section, result);
-                    }
+                Type t;
+                if (_mapping.TryGetValue(node.Name, out t))
+                {
+                    var instance = (INodeHandler)Activator.CreateInstance(t);
+                    instance.NodeHandler(node, sheet, section);
                 }
                 else
                 {
-                    if (node.HasChildNodes)
+                    if (nodeHandlers.TryGetValue(node.Name, out nodeHandler))
                     {
-                        ConvertHtmlNodes(node.ChildNodes, sheet, section, current);
+                        // pass the current container or section
+                        var result = nodeHandler(node, sheet, current ?? section);
+
+                        if (node.HasChildNodes)
+                        {
+                            ConvertHtmlNodes(node.ChildNodes, sheet, section, result);
+                        }
+                    }
+                    else
+                    {
+                        if (node.HasChildNodes)
+                        {
+                            ConvertHtmlNodes(node.ChildNodes, sheet, section, current);
+                        }
                     }
                 }
             }
@@ -91,11 +108,12 @@ namespace MigraDoc.Extensions.Html
             var cellIndex = -1;
             // Block Elements
 
-            nodeHandlers.Add("div", (node, sheet, parent) =>
-                {
-                    var handler = new ReportHandler();
-                    return handler.NodeHandler(node, sheet, parent);
-                });
+            //nodeHandlers.Add("div", (node, sheet, parent) =>
+            //    {
+            //        var handler = new ReportHandler();
+            //        return handler.NodeHandler(node, sheet, parent);
+            //    });
+
             var nsheet = _sheet;
 
             // could do with a predicate/regex matcher so we could just use one handler for all headings

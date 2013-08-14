@@ -30,20 +30,15 @@ namespace MigraDoc.Extensions.Html.Example
             var css = File.ReadAllText("Site.css");
             var sheet = parser.Parse(css);
 
-            var t2 = sheet.RuleSets
-            .SelectMany(r => r.Declarations)
-            .SelectMany(d => d.Expression.Terms)
-            .Where(t => t.Type == TermType.Url)
-            .First(); // Finds the '/images/logo.png' image
-
             var doc = new Document();
             doc.DefaultPageSetup.Orientation = Orientation.Portrait;
             doc.DefaultPageSetup.PageFormat = PageFormat.A4;
-            StyleDoc(doc);
+            doc.DefaultPageSetup.FooterDistance = Unit.FromCentimeter(0.01);
+            //StyleDoc(doc);
             var section = doc.AddSection();
-            var footer = new TextFrame();
+           // var footer = new TextFrame();
 
-            section.Footers.Primary.Add(footer);
+            //section.Footers.Primary.Add(footer);
             var html = File.ReadAllText("example.html");
             section.AddHtml(sheet, html);
 
@@ -106,9 +101,9 @@ namespace MigraDoc.Extensions.Html.Example
             body.ParagraphFormat.LineSpacing = 1.25;
             body.ParagraphFormat.SpaceAfter = 10;
 
-            var footer = doc.Styles["Footer"];
-            footer.Font.Size = Unit.FromInch(0.125);
-            footer.Font.Color = lightbrown;
+            //var footer = doc.Styles["Footer"];
+            //footer.Font.Size = Unit.FromInch(0.125);
+            //footer.Font.Color = lightbrown;
 
             var h1 = doc.Styles["Heading1"];
             h1.Font.Color = brown;

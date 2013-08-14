@@ -53,15 +53,17 @@ namespace MigraDoc.Extensions.Html
                 throw new ArgumentNullException("section");
             }
 
-            section.PageSetup.HeaderDistance = "0.002cm";
-            section.PageSetup.FooterDistance = "0.002cm";
+            //section.PageSetup.HeaderDistance = "0.001cm";
+            section.PageSetup.FooterDistance = Unit.FromCentimeter(0.01);
 
  // Create a paragraph with centered page number. See definition of style "Footer".
             var footer = section.Footers.Primary.AddParagraph();
+            //section.Footers.Primary.
             footer.Format.Alignment = ParagraphAlignment.Right;
             footer.AddPageField();
             footer.AddText(" of ");
             footer.AddNumPagesField();
+            
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
             ConvertHtmlNodes(doc.DocumentNode.ChildNodes, sheet, section);
@@ -77,7 +79,12 @@ namespace MigraDoc.Extensions.Html
                 if (_mapping.TryGetValue(node.Name, out t))
                 {
                     var instance = (INodeHandler)Activator.CreateInstance(t);
-                    instance.NodeHandler(node, sheet, section);
+                    var result = instance.NodeHandler(node, sheet, section);
+
+                    if (node.HasChildNodes)
+                    {
+                        ConvertHtmlNodes(node.ChildNodes, sheet, section, result);
+                    }
                 }
                 else
                 {

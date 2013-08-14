@@ -25,51 +25,48 @@ namespace MigraDoc.Extensions.Html
             }
 
             var sec = (Section)parent;
+            
+            Unit margin;
+            SetMargin(node, sheet, out margin, "margin-top");
+            sec.PageSetup.TopMargin = margin;
+            SetMargin(node, sheet, out margin, "margin-bottom");
+            sec.PageSetup.BottomMargin = margin;
+            SetMargin(node, sheet, out margin, "margin-left");
+            sec.PageSetup.LeftMargin = margin;
+            SetMargin(node, sheet, out margin, "margin-right");
+            sec.PageSetup.LeftMargin = margin;
+            return parent;
+        }
 
+        private void SetMargin(HtmlNode node, ExCSS.Stylesheet sheet, out Unit margin, string cssMargin)
+        {
             var @class = node.Attributes["class"];
 
+            margin = Unit.FromCentimeter(0.2);
+            
             if (@class != null)
             {
                 var css = (from t in sheet.RuleSets
-                        where t.Selectors.Any(x => x.SimpleSelectors.Any(z => z.Class == @class.Value))
-                        select t).FirstOrDefault();
+                           where t.Selectors.Any(x => x.SimpleSelectors.Any(z => z.Class == @class.Value))
+                           select t).FirstOrDefault();
 
                 if (css != null)
                 {
-                    var topmar = (from top in css.Declarations
-                               where top.Name == "margin-top"
-                               select top).FirstOrDefault();
+                    var mar = (from top in css.Declarations
+                                  where top.Name == cssMargin
+                                  select top).FirstOrDefault();
 
-                    var tm = topmar.Expression.Terms.Select(x => x.Value != String.Empty);
+                    if (mar != null)
+                    {
+                        var tm = mar.Expression.Terms.Where(x => x.Value != string.Empty).FirstOrDefault();
+
+                        if (tm != null)
+                        {
+                           margin = Unit.FromCentimeter(double.Parse(tm.Value));
+                        }
+                    }
                 }
             }
-            else
-            {
-
-            }
-
-            if (@class != null && @class.Value == "report")
-            {
-                var margins = node.Attributes["data-margin"];
-                if (margins == null)
-                {
-                    sec.PageSetup.TopMargin = Unit.FromCentimeter(0.1);
-                    sec.PageSetup.BottomMargin = Unit.FromCentimeter(0.1);
-                    sec.PageSetup.LeftMargin = Unit.FromCentimeter(0.1);
-                    sec.PageSetup.RightMargin = Unit.FromCentimeter(0.1);
-                }
-                else
-                {
-                    var marginValues = margins.Value.Split(' ');
-
-                    sec.PageSetup.TopMargin = Unit.FromCentimeter(double.Parse(marginValues[0]));
-                    sec.PageSetup.RightMargin = Unit.FromCentimeter(double.Parse(marginValues[1]));
-                    sec.PageSetup.BottomMargin = Unit.FromCentimeter(double.Parse(marginValues[2]));
-                    sec.PageSetup.LeftMargin = Unit.FromCentimeter(double.Parse(marginValues[3]));
-                }
-            }
-
-            return parent;
         }
     }
 }

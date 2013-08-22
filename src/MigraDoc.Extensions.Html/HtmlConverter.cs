@@ -123,6 +123,24 @@ namespace MigraDoc.Extensions.Html
 
             var nsheet = _sheet;
 
+            nodeHandlers.Add("img", (node, sheet, parent) =>
+            {
+                string someUrl = "http://www.google.com/images/logos/ps_logo2.png"; 
+                using (var webClient = new WebClient()) {
+                    byte[] imageBytes = webClient.DownloadData(someUrl);
+                    // do something with imageBytes`
+                }
+
+                if (parent is Section)
+                {
+                    var s = (Section) parent;
+                    //s.
+                    //s.AddImage()
+                }
+
+                return ((Section)parent).AddParagraph();
+            });
+
             // could do with a predicate/regex matcher so we could just use one handler for all headings
             nodeHandlers.Add("h1", AddHeading);
             nodeHandlers.Add("h2", AddHeading);

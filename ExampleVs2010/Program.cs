@@ -34,11 +34,8 @@ namespace MigraDoc.Extensions.Html.Example
             doc.DefaultPageSetup.Orientation = Orientation.Portrait;
             doc.DefaultPageSetup.PageFormat = PageFormat.A4;
             doc.DefaultPageSetup.FooterDistance = Unit.FromCentimeter(0.01);
-            //StyleDoc(doc);
-            var section = doc.AddSection();
-           // var footer = new TextFrame();
 
-            //section.Footers.Primary.Add(footer);
+            var section = doc.AddSection();
             var html = File.ReadAllText("example.html");
             section.AddHtml(sheet, html);
 

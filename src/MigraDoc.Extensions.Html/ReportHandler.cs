@@ -50,6 +50,11 @@ namespace MigraDoc.Extensions.Html
                            where t.Selectors.Any(x => x.SimpleSelectors.Any(z => z.Class == @class.Value))
                            select t).FirstOrDefault();
 
+                if (css == null)
+                {
+                    
+                }
+
                 if (css != null)
                 {
                     var mar = (from top in css.Declarations

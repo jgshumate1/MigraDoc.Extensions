@@ -42,20 +42,12 @@
     <Reference Include="HtmlAgilityPack, Version=1.4.6.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <HintPath>..\packages\HtmlAgilityPack.1.4.6\lib\Net40-client\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="MigraDoc.DocumentObjectModel">
-      <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\MigraDoc.DocumentObjectModel.dll</HintPath>
+    <Reference Include="MigraDoc.DocumentObjectModel, Version=1.32.3885.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Migradoc\MigraDoc\code\MigraDoc.DocumentObjectModel\bin\Debug\MigraDoc.DocumentObjectModel.dll</HintPath>
     </Reference>
     <Reference Include="MigraDoc.Rendering">
-      <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\MigraDoc.Rendering.dll</HintPath>
-    </Reference>
-    <Reference Include="MigraDoc.RtfRendering">
-      <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\MigraDoc.RtfRendering.dll</HintPath>
-    </Reference>
-    <Reference Include="PdfSharp">
-      <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\PdfSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="PdfSharp.Charting">
-      <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\PdfSharp.Charting.dll</HintPath>
+      <HintPath>..\..\Migradoc\MigraDoc\code\MigraDoc.Rendering\bin\Debug\MigraDoc.Rendering.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -77,6 +69,10 @@
     <ProjectReference Include="..\src\MigraDoc.Extensions.Html\MigraDoc.Extensions.Html.csproj">
       <Project>{CA3F8535-EA5E-4362-8922-FFBD86DF498F}</Project>
       <Name>MigraDoc.Extensions.Html</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\src\MigraDoc.Extensions\MigraDoc.Extensions.csproj">
+      <Project>{1863068F-975C-4F5B-ABA7-FBA344709A48}</Project>
+      <Name>MigraDoc.Extensions</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

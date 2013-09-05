@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Threading;
 using ExCSS.Model;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.DocumentObjectModel.Shapes;
@@ -31,13 +33,22 @@ namespace MigraDoc.Extensions.Html.Example
             var sheet = parser.Parse(css);
 
             var doc = new Document();
-            doc.DefaultPageSetup.Orientation = Orientation.Portrait;
-            doc.DefaultPageSetup.PageFormat = PageFormat.A4;
-            doc.DefaultPageSetup.FooterDistance = Unit.FromCentimeter(0.01);
+            //doc.DefaultPageSetup.Orientation = Orientation.Portrait;
+            //doc.DefaultPageSetup.PageFormat = PageFormat.A4;
+            //doc.DefaultPageSetup.FooterDistance = Unit.FromCentimeter(0.01);
 
+            Func<string, byte[]> imageProc = s =>
+                {
+                    var i = System.Drawing.Image.FromFile(s);
+                    var ms = new MemoryStream();
+                    i.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    return ms.ToArray();
+                };
+            
             var section = doc.AddSection();
             var html = File.ReadAllText("example.html");
-            section.AddHtml(sheet, html);
+            section.AddHtml(sheet, html, new HtmlConverter(imageProc));
+
 
             var renderer = new PdfDocumentRenderer();
             renderer.Document = doc;

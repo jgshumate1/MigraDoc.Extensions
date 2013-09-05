@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using System.IO;
+using HtmlAgilityPack;
 using MigraDoc.DocumentObjectModel;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using MigraDoc.DocumentObjectModel.Tables;
 
 namespace MigraDoc.Extensions.Html
 {
-    public class HtmlConverter : IConverter
+    public class HtmlConverter : MigraDoc.Html.IConverter
     {
         private IDictionary<string, Type> _mapping = new Dictionary<string, Type>();  
         private IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> nodeHandlers
@@ -16,10 +17,14 @@ namespace MigraDoc.Extensions.Html
 
         private ExCSS.Stylesheet _sheet;
 
-        public HtmlConverter()
+        private Func<string, byte[]> _imageProcessor; 
+
+        public HtmlConverter(Func<string, byte[]> imageProcessor = null)
         {
+            _imageProcessor = imageProcessor;
             AddDefaultNodeHandlers();
             MapTypes();
+
         }
 
         public IDictionary<string, Func<HtmlNode, ExCSS.Stylesheet, DocumentObject, DocumentObject>> NodeHandlers
@@ -121,23 +126,48 @@ namespace MigraDoc.Extensions.Html
             //        return handler.NodeHandler(node, sheet, parent);
             //    });
 
-            var nsheet = _sheet;
+            //var nsheet = _sheet;
 
             nodeHandlers.Add("img", (node, sheet, parent) =>
             {
-                string someUrl = "http://www.google.com/images/logos/ps_logo2.png"; 
-                using (var webClient = new WebClient()) {
-                    byte[] imageBytes = webClient.DownloadData(someUrl);
-                    // do something with imageBytes`
-                }
-
-                if (parent is Section)
+                if (_imageProcessor != null)
                 {
-                    var s = (Section) parent;
-                    //s.
-                    //s.AddImage()
-                }
+                    var imageBytes = _imageProcessor(node.Attributes["src"].Value);
+                    using (var writer = new MemoryStream())
+                    {
+                        writer.Write(imageBytes, 0, imageBytes.Length);
 
+                        if (parent is Section)
+                        {
+                            var s = (Section)parent;
+                            var img = s.AddImage(writer);
+                            img.Height = Unit.FromCentimeter(5.0);
+                            img.Width = Unit.FromCentimeter(5.0);
+                        }
+                    }
+                }
+                else
+                {
+                    string someUrl = "http://photos-h.ak.fbcdn.net/hphotos-ak-snc1/hs085.snc1/4592_1050661198503_1584931010_30103855_3750547_n.jpg";
+                    using (var webClient = new WebClient())
+                    {
+                        byte[] imageBytes = webClient.DownloadData(someUrl);
+
+                        using (var writer = new MemoryStream())
+                        {
+                            writer.Write(imageBytes, 0, imageBytes.Length);
+
+                            if (parent is Section)
+                            {
+                                var s = (Section)parent;
+                                var img = s.AddImage(writer);
+                                img.Height = Unit.FromCentimeter(5.0);
+                                img.Width = Unit.FromCentimeter(5.0);
+                            }
+                        }
+                    }                
+                }
+   
                 return ((Section)parent).AddParagraph();
             });
 
